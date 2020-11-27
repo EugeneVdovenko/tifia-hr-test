@@ -129,10 +129,21 @@ class SiteController extends Controller
     /**
      * Построение реферального дерева
      */
-    public function actioniReferalTree()
+    public function actionReferalTree()
     {
+        $request = Yii::$app->request;
+        $id = $request->get('client', '82824897');
+        $deep = $request->get('deep', '3');
 
+        $sql = 'SELECT u.client_uid, u.partner_id, u.email, u.fullname FROM users u WHERE u.client_uid IN (%s)';
+        $recursive[0] = "SELECT u0.client_uid FROM users u0 WHERE u0.client_uid = {$id}";
+        for ($i = 1; $i <= $deep; $i++) {
+            $recursive[] = sprintf("SELECT u{$i}.client_uid FROM users u{$i} WHERE u{$i}.partner_id IN (%s)", $recursive[$i-1]);
+        }
+        $sql = sprintf($sql, implode(' UNION ALL ', $recursive));
 
-        $this->render('referal-tree');
+        $referal = Yii::$app->db->createCommand($sql)->queryAll();
+
+        return $this->render('referal-tree', compact('referal'));
     }
 }
