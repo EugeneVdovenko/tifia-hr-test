@@ -2,6 +2,7 @@
 
 /* @var $this yii\web\View */
 /* @var $referal array */
+/* @var $nested array */
 
 use yii\helpers\Html;
 
@@ -14,9 +15,31 @@ $this->params['breadcrumbs'][] = $this->title;
     <p>
         Выбираем рефераллов пользоаателя
     </p>
-    <?php foreach ($referal as $client) {?>
-    <pre><?php print_r($client) ?></pre>
-    <?php } ?>
-
+<pre>
+<?php printRef($nested, getFirstKey($nested)); ?>
+</pre>
 
 </div>
+
+<?php
+function printRef($all, $current, $tabs = '')
+{
+    print("\n{$tabs} $current");
+    if (array_key_exists($current, $all)) {
+        $tabs = " |   " . $tabs;
+        foreach ($all[$current] as $refs) {
+            foreach ($refs as $ref) {
+                printRef($all, $ref, $tabs);
+            }
+        }
+    }
+}
+
+function getFirstKey(array $all)
+{
+    foreach ($all as $k => $v) {
+        return $k;
+    }
+}
+
+?>

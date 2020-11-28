@@ -135,15 +135,30 @@ class SiteController extends Controller
         $id = $request->get('client', '82824897');
         $deep = $request->get('deep', '3');
 
-        $sql = 'SELECT u.client_uid, u.partner_id, u.email, u.fullname FROM users u WHERE u.client_uid IN (%s)';
-        $recursive[0] = "SELECT u0.client_uid FROM users u0 WHERE u0.client_uid = {$id}";
-        for ($i = 1; $i <= $deep; $i++) {
-            $recursive[] = sprintf("SELECT u{$i}.client_uid FROM users u{$i} WHERE u{$i}.partner_id IN (%s)", $recursive[$i-1]);
-        }
-        $sql = sprintf($sql, implode(' UNION ALL ', $recursive));
-
+        $sql = 'WITH RECURSIVE rels (client_uid, partner_id, id, fullname, email) AS (
+                    SELECT client_uid, partner_id, id, fullname, email
+                    FROM users
+                    WHERE client_uid = %s
+                    UNION ALL
+                    SELECT u2.client_uid, u2.partner_id, u2.id, u2.fullname, u2.email
+                    FROM users u2 JOIN rels u1 ON u2.partner_id = u1.client_uid
+                )
+                SELECT client_uid, partner_id, id, fullname, email
+                FROM rels
+                GROUP BY client_uid, partner_id
+                ORDER BY id;';
+        $sql = sprintf($sql, $id);
+        /** @var array $referal */
         $referal = Yii::$app->db->createCommand($sql)->queryAll();
 
-        return $this->render('referal-tree', compact('referal'));
+        // преобразуем масив во влоенную структуру
+        $nested = array_reduce($referal, function ($nested, $client) {
+            if ($client['partner_id'] > 0) {
+                $nested[$client['partner_id']][] = [$client['client_uid']];
+            }
+            return $nested;
+        }, []);
+
+        return $this->render('referal-tree', compact('referal', 'nested'));
     }
 }

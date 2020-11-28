@@ -70,8 +70,6 @@
 | :------------: | :------------: | :------------: | :------------: | :------------: | :------------: | :------------: | :------------: | :------------: | :------------: | :------------: |
 | int | int  | int  | string  | int(1)  | float  | datetime  | datetime  | float  | float  | float  |
 
-
-
 Примечание: Не разрешается добавлять новые столбцы и таблицы. Тестовую базу данных можно улучшать.
 
 
@@ -82,5 +80,27 @@
    ```
    
 2. Запрос на данные для дерева
-   ```
-   ```
+   - вариант 1 - используем рекурсивный запрос
+     ```
+     WITH RECURSIVE rels (client_uid, partner_id, id, fullname, email) AS (
+         SELECT client_uid, partner_id, id, fullname, email
+         FROM users
+         WHERE client_uid = '82824897'
+         UNION ALL
+         SELECT u2.client_uid, u2.partner_id, u2.id, u2.fullname, u2.email
+         FROM users u2 JOIN rels u1 ON u2.partner_id = u1.client_uid
+     )
+     SELECT client_uid, partner_id, id, fullname, email 
+     FROM rels 
+     GROUP BY client_uid, partner_id 
+     ORDER BY id;
+     ```
+   - вариант 2 - подзапросы, формиуем на php нужную вложенность.
+     ```
+     $sql = 'SELECT u.client_uid, u.partner_id, u.email, u.fullname FROM users u WHERE u.client_uid IN (%s)';
+     $recursive[0] = "SELECT u0.client_uid FROM users u0 WHERE u0.client_uid = {$id}";
+     for ($i = 1; $i <= $deep; $i++) {
+         $recursive[] = sprintf("SELECT u{$i}.client_uid FROM users u{$i} WHERE u{$i}.partner_id IN (%s)", $recursive[$i-1]);
+     }
+     $sql = sprintf($sql, implode(' UNION ALL ', $recursive));
+     ```
