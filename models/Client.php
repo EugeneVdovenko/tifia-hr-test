@@ -67,4 +67,9 @@ class Client extends \yii\db\ActiveRecord
             'status' => 'Status',
         ];
     }
+
+    public function getAccounts()
+    {
+        return $this->hasMany(Account::class, ['client_uid' => 'client_uid']);
+    }
 }

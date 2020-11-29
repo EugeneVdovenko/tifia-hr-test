@@ -1,45 +1,34 @@
 <?php
 
 /* @var $this yii\web\View */
-/* @var $referal array */
+/* @var $time_begin float */
 /* @var $nested array */
-
+/* @var $profit int */
+/* @var $sumVolumeTree int */
+/* @var $tree string */
+/* @var $allReferalsCount int */
+/* @var $nearReferalsCount int */
+/* @var $heightTree int */
 use yii\helpers\Html;
 
 $this->title = 'Реферальное дерево';
 $this->params['breadcrumbs'][] = $this->title;
+
 ?>
 <div class="site-referal">
     <h1><?= Html::encode($this->title) ?></h1>
+    <p>Выбираем рефераллов пользоаателя</p>
 
-    <p>
-        Выбираем рефераллов пользоаателя
-    </p>
+    <p>Количество прямых рефералов <?= $nearReferalsCount ?></p>
+    <p>Количество рефералов <?= $allReferalsCount ?></p>
+    <p>Высота: <?= $heightTree ?></p>
+    <p>Прибыльность: <?= $profit ?></p>
+    <p>Cуммарный объем: <?= $sumVolumeTree ?></p>
 <pre>
-<?php printRef($nested, getFirstKey($nested)); ?>
+<?= $tree  ?>
 </pre>
-
 </div>
 
-<?php
-function printRef($all, $current, $tabs = '')
-{
-    print("\n{$tabs} $current");
-    if (array_key_exists($current, $all)) {
-        $tabs = " |   " . $tabs;
-        foreach ($all[$current] as $refs) {
-            foreach ($refs as $ref) {
-                printRef($all, $ref, $tabs);
-            }
-        }
-    }
-}
+<hr>
 
-function getFirstKey(array $all)
-{
-    foreach ($all as $k => $v) {
-        return $k;
-    }
-}
-
-?>
+<p>Время генерации страницы: около <?= round((microtime(true) - $time_begin)) ?> секунд</p>

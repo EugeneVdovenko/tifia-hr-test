@@ -2,6 +2,7 @@
 
 namespace app\controllers;
 
+use app\services\ClientService;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
@@ -12,6 +13,15 @@ use app\models\ContactForm;
 
 class SiteController extends Controller
 {
+    /** @var ClientService */
+    protected $clientService;
+
+    public function __construct($id, $module, $config = [])
+    {
+        parent::__construct($id, $module, $config);
+        $this->clientService = \Yii::$app->get(ClientService::class);
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -131,34 +141,29 @@ class SiteController extends Controller
      */
     public function actionReferalTree()
     {
+        $time_begin = microtime(true);
         $request = Yii::$app->request;
+
         $id = $request->get('client', '82824897');
-        $deep = $request->get('deep', '3');
+        $referalTree = $this->clientService->getReferalTree($id);
 
-        $sql = 'WITH RECURSIVE rels (client_uid, partner_id, id, fullname, email) AS (
-                    SELECT client_uid, partner_id, id, fullname, email
-                    FROM users
-                    WHERE client_uid = %s
-                    UNION ALL
-                    SELECT u2.client_uid, u2.partner_id, u2.id, u2.fullname, u2.email
-                    FROM users u2 JOIN rels u1 ON u2.partner_id = u1.client_uid
-                )
-                SELECT client_uid, partner_id, id, fullname, email
-                FROM rels
-                GROUP BY client_uid, partner_id
-                ORDER BY id;';
-        $sql = sprintf($sql, $id);
-        /** @var array $referal */
-        $referal = Yii::$app->db->createCommand($sql)->queryAll();
+        // преобразуем масив
+        $nested = $this->clientService->getReferalTreeUids($referalTree);
+        $tree = $this->clientService->getReferalTreeView($nested, $id);
 
-        // преобразуем масив во влоенную структуру
-        $nested = array_reduce($referal, function ($nested, $client) {
-            if ($client['partner_id'] > 0) {
-                $nested[$client['partner_id']][] = [$client['client_uid']];
-            }
-            return $nested;
-        }, []);
+        $allReferalsCount = $this->clientService->getReferalCount($id, true);
+        $nearReferalsCount = $this->clientService->getReferalCount($id, false);
+        $heightTree = $this->clientService->getTreeHeight($id);
+        $profit = 'Просчитывается отдельно';
+        $sumVolumeTree = 'Просчитывается отдельно';
 
-        return $this->render('referal-tree', compact('referal', 'nested'));
+        return $this->render('referal-tree', compact(
+            'time_begin',
+            'tree',
+            'allReferalsCount',
+            'nearReferalsCount',
+            'heightTree',
+            'profit',
+            'sumVolumeTree'));
     }
 }
